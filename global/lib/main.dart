@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-
-import 'package:global/screens/main_screen.dart';
 import 'package:global/screens/splash/splash_screen.dart';
 
 void main() {
@@ -21,7 +19,7 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Satoshi',
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MainScreen(),
+      home: const SplashScreen(),
     );
   }
 }

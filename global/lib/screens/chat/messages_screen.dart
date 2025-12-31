@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:global/screens/home/home_screen.dart';
 import 'chat_screen.dart';
 
 class MessagesScreen extends StatelessWidget {
@@ -67,57 +68,7 @@ class MessagesScreen extends StatelessWidget {
             // Header Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 24,
-                        backgroundImage: AssetImage(
-                          'assets/images/home/cobalt.png',
-                        ), // Placeholder for user
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: const [
-                              Text(
-                                "Hey, Safar",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              SizedBox(width: 5),
-                              Text("👋", style: TextStyle(fontSize: 18)),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            "Welcome Back",
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.notifications_outlined),
-                      onPressed: () {},
-                      color: Colors.black,
-                    ),
-                  ),
-                ],
-              ),
+              child: const HederSection(),
             ),
             const SizedBox(height: 10),
 
