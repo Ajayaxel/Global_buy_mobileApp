@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:global/screens/profile/documents_screen.dart';
 import 'package:global/screens/profile/payment_methods_screen.dart';
 import 'package:global/screens/profile/personal_details_screen.dart';
+import 'package:global/screens/profile/setting_screen.dart';
 import 'package:global/screens/profile/support_screen.dart';
 import 'package:global/screens/login/login_screen.dart';
 
@@ -105,6 +106,18 @@ class ProfileScreen extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const DocumentsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildDivider(),
+                      _buildMenuItem(
+                        "Settings",
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SettingsScreen(),
                             ),
                           );
                         },
