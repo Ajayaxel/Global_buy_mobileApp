@@ -1,9 +1,14 @@
-import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:global/widgets/gbtn.dart';
-import 'package:global/screens/login/verification_pending_screen.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:global/bloc/document/document_bloc.dart';
+import 'package:global/bloc/document/document_event.dart';
+import 'package:global/bloc/document/document_state.dart';
+import 'package:global/screens/login/verification_pending_screen.dart';
+import 'package:global/widgets/custom_loading_indicator.dart';
+import 'package:global/widgets/custom_toast.dart';
+import 'package:global/widgets/gbtn.dart';
+import 'package:image_picker/image_picker.dart';
 
 class UploadDocumentScreen extends StatefulWidget {
   const UploadDocumentScreen({super.key});
@@ -14,14 +19,20 @@ class UploadDocumentScreen extends StatefulWidget {
 
 class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
   final List<DocumentItem> _documents = [
-    DocumentItem(title: 'Government ID', subtitle: 'Passport or National ID'),
+    DocumentItem(
+      title: 'Government ID',
+      subtitle: 'Passport or National ID',
+      key: 'government_id',
+    ),
     DocumentItem(
       title: 'Business License',
       subtitle: 'Upload Valid Registration',
+      key: 'business_licence',
     ),
     DocumentItem(
       title: 'Proof of Address',
       subtitle: 'Utility bill or bank statement',
+      key: 'proof_of_address',
     ),
   ];
 
@@ -51,7 +62,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                   source: ImageSource.camera,
                 );
                 if (image != null) {
-                  _startUpload(index, image.name);
+                  _processFile(index, image.path, image.name);
                 }
               },
             ),
@@ -65,7 +76,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                   source: ImageSource.gallery,
                 );
                 if (image != null) {
-                  _startUpload(index, image.name);
+                  _processFile(index, image.path, image.name);
                 }
               },
             ),
@@ -77,7 +88,11 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                 FilePickerResult? result = await FilePicker.platform
                     .pickFiles();
                 if (result != null) {
-                  _startUpload(index, result.files.single.name);
+                  _processFile(
+                    index,
+                    result.files.single.path!,
+                    result.files.single.name,
+                  );
                 }
               },
             ),
@@ -87,28 +102,33 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
     );
   }
 
-  void _startUpload(int index, String fileName) {
+  void _processFile(int index, String path, String name) {
     setState(() {
-      _documents[index].isUploading = true;
-      _documents[index].progress = 0.0;
+      _documents[index].filePath = path;
+      _documents[index].fileName = name;
+      _documents[index].isCompleted = true;
     });
+  }
 
-    Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      setState(() {
-        if (_documents[index].progress < 1.0) {
-          _documents[index].progress += 0.05;
-        } else {
-          _documents[index].isUploading = false;
-          _documents[index].isCompleted = true;
-          _documents[index].fileName = fileName;
-          timer.cancel();
-        }
-      });
-    });
+  void _submitDocuments() {
+    // Check if all documents are uploaded
+    if (_documents.any((doc) => !doc.isCompleted)) {
+      CustomToast.show(
+        context,
+        'Please upload all required documents.',
+        isError: true,
+      );
+      return;
+    }
+
+    // Trigger Bloc Event
+    context.read<DocumentBloc>().add(
+      UploadDocumentsRequested(
+        governmentIdPath: _documents[0].filePath!,
+        businessLicensePath: _documents[1].filePath!,
+        proofOfAddressPath: _documents[2].filePath!,
+      ),
+    );
   }
 
   @override
@@ -116,190 +136,183 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
     int completedCount = _documents.where((doc) => doc.isCompleted).length;
     double overallProgress = completedCount / _documents.length;
 
-    return Scaffold(
-      backgroundColor: const Color(0xffF6F6F6),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              // Progress Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Step 2 of 3',
-                    style: TextStyle(
-                      color: Color(0xFFBA983F),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '${(overallProgress * 100).toInt()}% Completed',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: overallProgress,
-                  backgroundColor: const Color(0xffE0E0E0),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFFBA983F),
-                  ),
-                  minHeight: 6,
-                ),
-              ),
-              const SizedBox(height: 32),
-              const Text(
-                'Upload Document',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Please upload following documents to activate your account',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 32),
-              // Document List
-              Expanded(
-                child: ListView.separated(
-                  itemCount: _documents.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 16),
-                  itemBuilder: (context, index) {
-                    final doc = _documents[index];
-                    return InkWell(
-                      onTap: doc.isUploading || doc.isCompleted
-                          ? null
-                          : () => _showFilePicker(index),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xffF8F8F8),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.badge_outlined,
-                                color: Colors.black,
-                              ),
+    return BlocConsumer<DocumentBloc, DocumentState>(
+      listener: (context, state) {
+        if (state is DocumentSuccess) {
+          CustomToast.show(context, state.message);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const VerificationPendingScreen(),
+            ),
+          );
+        } else if (state is DocumentFailure) {
+          CustomToast.show(context, state.error, isError: true);
+        }
+      },
+      builder: (context, state) {
+        return Stack(
+          children: [
+            Scaffold(
+              backgroundColor: const Color(0xffF6F6F6),
+              body: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 20),
+                      // Progress Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Step 2 of 3',
+                            style: TextStyle(
+                              color: Color(0xFFBA983F),
+                              fontWeight: FontWeight.bold,
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    doc.title,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    doc.isCompleted
-                                        ? doc.fileName!
-                                        : doc.subtitle,
-                                    style: TextStyle(
-                                      color: doc.isCompleted
-                                          ? Colors.grey
-                                          : Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  if (doc.isUploading) ...[
-                                    const SizedBox(height: 8),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(2),
-                                      child: LinearProgressIndicator(
-                                        value: doc.progress,
-                                        backgroundColor: const Color(
-                                          0xffF0F0F0,
-                                        ),
-                                        valueColor:
-                                            const AlwaysStoppedAnimation<Color>(
-                                              Color(0xFFBA983F),
-                                            ),
-                                        minHeight: 4,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            if (doc.isCompleted)
-                              const Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                              )
-                            else if (doc.isUploading)
-                              Text(
-                                '${(doc.progress * 100).toInt()}%',
-                                style: const TextStyle(
-                                  color: Color(0xFFBA983F),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            else
-                              ElevatedButton(
-                                onPressed: () => _showFilePicker(index),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xff636363),
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                ),
-                                child: const Text('Upload'),
-                              ),
-                          ],
+                          ),
+                          Text(
+                            '${(overallProgress * 100).toInt()}% Completed',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: overallProgress,
+                          backgroundColor: const Color(0xffE0E0E0),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFFBA983F),
+                          ),
+                          minHeight: 6,
                         ),
                       ),
-                    );
-                  },
+                      const SizedBox(height: 32),
+                      const Text(
+                        'Upload Document',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Please upload following documents to activate your account',
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 32),
+                      // Document List
+                      Expanded(
+                        child: ListView.separated(
+                          itemCount: _documents.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 16),
+                          itemBuilder: (context, index) {
+                            final doc = _documents[index];
+                            return InkWell(
+                              onTap: () => _showFilePicker(index),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xffF8F8F8),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.badge_outlined,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            doc.title,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            doc.isCompleted
+                                                ? doc.fileName!
+                                                : doc.subtitle,
+                                            style: TextStyle(
+                                              color: doc.isCompleted
+                                                  ? Colors.black87
+                                                  : Colors.grey,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    if (doc.isCompleted)
+                                      const Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green,
+                                      )
+                                    else
+                                      ElevatedButton(
+                                        onPressed: () => _showFilePicker(index),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(
+                                            0xff636363,
+                                          ),
+                                          foregroundColor: Colors.white,
+                                          elevation: 0,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 8,
+                                          ),
+                                        ),
+                                        child: const Text('Upload'),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      GBtn(
+                        text: 'Submit for Verification',
+                        onPressed: _submitDocuments,
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 24),
-              GBtn(
-                text: 'Submit for Verification',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const VerificationPendingScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
+            ),
+            if (state is DocumentLoading) const CustomLoadingPage(),
+          ],
+        );
+      },
     );
   }
 }
@@ -307,17 +320,17 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
 class DocumentItem {
   final String title;
   final String subtitle;
-  bool isUploading;
+  final String key;
   bool isCompleted;
-  double progress;
   String? fileName;
+  String? filePath;
 
   DocumentItem({
     required this.title,
     required this.subtitle,
-    this.isUploading = false,
+    required this.key,
     this.isCompleted = false,
-    this.progress = 0.0,
     this.fileName,
+    this.filePath,
   });
 }
