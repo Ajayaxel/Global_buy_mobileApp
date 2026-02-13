@@ -14,6 +14,7 @@ import 'package:global/screens/profile/setting_screen.dart';
 import 'package:global/screens/profile/support_screen.dart';
 import 'package:global/screens/login/login_screen.dart';
 import 'package:global/widgets/shimmer_widget.dart';
+import 'package:global/widgets/network_error_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -93,21 +94,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         );
                       } else if (state is ProfileError) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 20.0),
-                          child: Column(
-                            children: [
-                              Text("Error: ${state.message}"),
-                              TextButton(
-                                onPressed: () {
-                                  context.read<ProfileBloc>().add(
-                                    FetchProfile(),
-                                  );
-                                },
-                                child: const Text("Retry"),
-                              ),
-                            ],
-                          ),
+                        return NetworkErrorWidget(
+                          message: state.message,
+                          onRetry: () {
+                            context.read<ProfileBloc>().add(FetchProfile());
+                          },
                         );
                       } else if (state is ProfileLoaded) {
                         final profile = state.profile;

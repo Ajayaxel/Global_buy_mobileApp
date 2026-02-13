@@ -1,10 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:global/bloc/order/order_bloc.dart';
+import 'package:global/bloc/order/order_event.dart';
+import 'package:global/bloc/order/order_state.dart';
 import 'package:global/theme/app_colors.dart';
 import 'package:global/screens/home/home_screen.dart'; // To reuse HederSection
 import 'package:global/screens/orders/order_detail_screen.dart';
+import 'package:intl/intl.dart';
+import 'package:global/widgets/custom_loading_indicator.dart';
+import 'package:global/models/order_model.dart';
 
-class OrdersScreen extends StatelessWidget {
+class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
+
+  @override
+  State<OrdersScreen> createState() => _OrdersScreenState();
+}
+
+class _OrdersScreenState extends State<OrdersScreen> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<OrderBloc>().add(FetchOrders());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,28 +45,39 @@ class OrdersScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Expanded(
-                child: ListView(
-                  children: [
-                    const OrderCard(
-                      orderId: "ORD-2024-001",
-                      productName: "1000MT Copper Ore",
-                      date: "15/01/2024",
-                      price: "\$850,000",
-                      image: "assets/images/home/copper 1.png",
-                      currentStep: 4,
-                      statusText: "In Transit",
-                    ),
-                    const SizedBox(height: 16),
-                    const OrderCard(
-                      orderId: "ORD-2024-001",
-                      productName: "1000MT Copper Ore",
-                      date: "15/01/2024",
-                      price: "\$850,000",
-                      image: "assets/images/home/copper 1.png",
-                      currentStep: 1,
-                      statusText: "Negotiation",
-                    ),
-                  ],
+                child: BlocBuilder<OrderBloc, OrderState>(
+                  builder: (context, state) {
+                    if (state is OrderLoading) {
+                      return const Center(child: CustomLoadingIndicator());
+                    } else if (state is OrderError) {
+                      return Center(
+                        child: Text(
+                          state.message,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      );
+                    } else if (state is OrdersLoaded) {
+                      if (state.orders.isEmpty) {
+                        return const Center(child: Text("No orders found."));
+                      }
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          context.read<OrderBloc>().add(FetchOrders());
+                        },
+                        child: ListView.builder(
+                          itemCount: state.orders.length,
+                          itemBuilder: (context, index) {
+                            final order = state.orders[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: OrderCard(order: order),
+                            );
+                          },
+                        ),
+                      );
+                    }
+                    return const SizedBox();
+                  },
                 ),
               ),
             ],
@@ -60,37 +89,33 @@ class OrdersScreen extends StatelessWidget {
 }
 
 class OrderCard extends StatelessWidget {
-  final String orderId;
-  final String productName;
-  final String date;
-  final String price;
-  final String image;
-  final int currentStep;
-  final String statusText;
+  final OrderModel order;
 
-  const OrderCard({
-    super.key,
-    required this.orderId,
-    required this.productName,
-    required this.date,
-    required this.price,
-    required this.image,
-    required this.currentStep,
-    required this.statusText,
-  });
+  const OrderCard({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
+    final formattedDate = DateFormat('dd/MM/yyyy').format(order.createdAt);
+    final currencyFormat = NumberFormat.simpleCurrency(decimalDigits: 0);
+    final formattedPrice = currencyFormat.format(
+      double.tryParse(order.totalAmount) ?? 0.0,
+    );
+
+    // Get first item product image if available
+    String productImage = "assets/images/home/copper 1.png";
+    String productName = "Unknown Product";
+    if (order.items.isNotEmpty) {
+      productName =
+          "${order.items[0].quantity}MT ${order.items[0].product.name}";
+      // Use placeholder if image path is not available or handled by backend
+    }
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => OrderDetailScreen(
-              orderId: orderId,
-              date: date,
-              currentStep: currentStep,
-            ),
+            builder: (context) => OrderDetailScreen(orderId: order.id),
           ),
         );
       },
@@ -111,7 +136,7 @@ class OrderCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        orderId,
+                        order.orderNumber,
                         style: const TextStyle(
                           color: Color(0xFFA0A0A0),
                           fontSize: 14,
@@ -164,27 +189,30 @@ class OrderCard extends StatelessWidget {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: Image.asset(image, fit: BoxFit.contain),
+                    child: Image.asset(productImage, fit: BoxFit.contain),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            OrderTimeline(currentStep: currentStep, statusText: statusText),
+            OrderTimeline(
+              currentStep: order.currentStep,
+              statusText: order.statusText,
+            ),
             const SizedBox(height: 8),
             const Divider(color: Color(0xFFEEEEEE), thickness: 1),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  date,
+                  formattedDate,
                   style: const TextStyle(
                     color: Color(0xFFA0A0A0),
                     fontSize: 14,
                   ),
                 ),
                 Text(
-                  price,
+                  formattedPrice,
                   style: const TextStyle(
                     color: AppColors.yellowColor,
                     fontSize: 20,

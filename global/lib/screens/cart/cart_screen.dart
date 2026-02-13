@@ -5,124 +5,202 @@ import 'package:global/widgets/gbtn.dart';
 import 'package:global/models/cart_item.dart';
 import 'package:global/services/cart_manager.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:global/bloc/cart/cart_bloc.dart';
+import 'package:global/bloc/cart/cart_event.dart';
+import 'package:global/bloc/cart/cart_state.dart';
+import 'package:global/bloc/home/home_bloc.dart';
+import 'package:global/bloc/home/home_state.dart';
+import 'package:global/models/buyer_home_model.dart';
+import 'package:global/services/toast_service.dart';
+import 'package:global/widgets/custom_loading_indicator.dart';
+import 'package:global/widgets/network_error_widget.dart';
 
-class CartScreen extends StatelessWidget {
+class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        body: ValueListenableBuilder<List<CartItem>>(
-          valueListenable: CartManager().cartItemsNotifier,
-          builder: (context, cartItems, child) {
-            if (cartItems.isEmpty) {
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      top: 16,
-                      left: 16,
-                      right: 16,
-                    ),
-                    child: const HederSection(),
-                  ),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.shopping_cart_rounded,
-                          size: 120,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          "Your cart is empty",
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          "Browse our mineral listings to add items",
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 32),
-                        SizedBox(
-                          width: 200,
-                          child: GBtn(
-                            text: "Browse Minerals",
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const BrowseMineralsScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }
+  State<CartScreen> createState() => _CartScreenState();
+}
 
-            return Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            top: 16,
-                            left: 16,
-                            right: 16,
+class _CartScreenState extends State<CartScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch cart items using BLoC on screen load only if not already loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cartBloc = context.read<CartBloc>();
+      if (cartBloc.state is CartInitial) {
+        cartBloc.add(FetchCartItems());
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<CartBloc, CartState>(
+      listener: (context, state) {
+        if (state is CartSuccess) {
+          ToastService.showTopToast(context, "Success", state.message);
+        } else if (state is CartError) {
+          ToastService.showTopToast(
+            context,
+            "Error",
+            state.error,
+            titleColor: Colors.red,
+          );
+        }
+      },
+      builder: (context, state) {
+        return Stack(
+          children: [
+            Scaffold(
+              body: SafeArea(
+                child: ValueListenableBuilder<List<CartItem>>(
+                  valueListenable: CartManager().cartItemsNotifier,
+                  builder: (context, cartItems, child) {
+                    if (state is CartError && cartItems.isEmpty) {
+                      return NetworkErrorWidget(
+                        message: state.error,
+                        onRetry: () {
+                          context.read<CartBloc>().add(FetchCartItems());
+                        },
+                      );
+                    }
+
+                    if (cartItems.isEmpty) {
+                      return Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              top: 16,
+                              left: 16,
+                              right: 16,
+                            ),
+                            child: const HederSection(),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const HederSection(),
-                              const SizedBox(height: 24),
-                              Text(
-                                "Cart (${cartItems.length})",
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.shopping_cart_rounded,
+                                  size: 120,
+                                  color: Colors.grey.shade400,
                                 ),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
+                                const SizedBox(height: 24),
+                                const Text(
+                                  "Your cart is empty",
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  "Browse our mineral listings to add items",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 32),
+                                SizedBox(
+                                  width: 200,
+                                  child: GBtn(
+                                    text: "Browse Minerals",
+                                    onPressed: () {
+                                      final homeState = context
+                                          .read<HomeBloc>()
+                                          .state;
+                                      List<Product> allProducts = [];
+                                      if (homeState is HomeLoaded) {
+                                        allProducts = <Product>{
+                                          ...homeState
+                                              .homeData
+                                              .featuredProducts,
+                                          ...homeState.homeData.recentListings,
+                                        }.toList();
+                                      }
+
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              BrowseMineralsScreen(
+                                                products: allProducts,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return Column(
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 16,
+                                    left: 16,
+                                    right: 16,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const HederSection(),
+                                      const SizedBox(height: 24),
+                                      Text(
+                                        "Cart (${cartItems.length})",
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                    ],
+                                  ),
+                                ),
+                                ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  itemCount: cartItems.length,
+                                  itemBuilder: (context, index) {
+                                    return CartItemCard(item: cartItems[index]);
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+                              ],
+                            ),
                           ),
                         ),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: cartItems.length,
-                          itemBuilder: (context, index) {
-                            return CartItemCard(item: cartItems[index]);
-                          },
-                        ),
-                        const SizedBox(height: 20),
+                        const CartSummarySection(),
                       ],
-                    ),
-                  ),
+                    );
+                  },
                 ),
-                CartSummarySection(),
-              ],
-            );
-          },
-        ),
-      ),
+              ),
+            ),
+            if (state is CartLoading) const CustomLoadingPage(),
+          ],
+        );
+      },
     );
   }
 }
@@ -160,7 +238,9 @@ class CartItemCard extends StatelessWidget {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Image.asset(item.image, fit: BoxFit.contain),
+                  child: item.image.startsWith('http')
+                      ? Image.network(item.image, fit: BoxFit.contain)
+                      : Image.asset(item.image, fit: BoxFit.contain),
                 ),
               ),
               const SizedBox(width: 16),
@@ -179,7 +259,112 @@ class CartItemCard extends StatelessWidget {
                           ),
                         ),
                         IconButton(
-                          onPressed: () => CartManager().removeItem(item),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => Dialog(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                backgroundColor: Colors.white,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24.0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        "Remove Item",
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      const Text(
+                                        "Are you sure you want to remove this item from your cart?",
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: SizedBox(
+                                              height: 48,
+                                              child: ElevatedButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(
+                                                    0xFFF6F6F6,
+                                                  ),
+                                                  foregroundColor: Colors.black,
+                                                  elevation: 0,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                ),
+                                                child: const Text(
+                                                  "Cancel",
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: SizedBox(
+                                              height: 48,
+                                              child: ElevatedButton(
+                                                onPressed: () {
+                                                  Navigator.pop(context);
+                                                  context.read<CartBloc>().add(
+                                                    RemoveFromCartEvent(
+                                                      item.id,
+                                                    ),
+                                                  );
+                                                },
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(
+                                                    0xFFBA983F,
+                                                  ),
+                                                  foregroundColor: Colors.white,
+                                                  elevation: 0,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                ),
+                                                child: const Text(
+                                                  "Remove",
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                           icon: const Icon(
                             Icons.delete_outline,
                             color: Colors.red,
@@ -262,10 +447,17 @@ class CartItemCard extends StatelessWidget {
                         ],
                       ),
                       child: IconButton(
-                        onPressed: () => CartManager().updateQuantity(
-                          item,
-                          item.quantity - 50,
-                        ),
+                        onPressed: () {
+                          final newQuantity = item.quantity - 50;
+                          if (newQuantity > 0) {
+                            context.read<CartBloc>().add(
+                              UpdateCartItemQuantity(
+                                cartItemId: item.id,
+                                quantity: newQuantity,
+                              ),
+                            );
+                          }
+                        },
                         icon: const Icon(Icons.remove, size: 18),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
@@ -299,10 +491,24 @@ class CartItemCard extends StatelessWidget {
                         ],
                       ),
                       child: IconButton(
-                        onPressed: () => CartManager().updateQuantity(
-                          item,
-                          item.quantity + 50,
-                        ),
+                        onPressed: () {
+                          final newQuantity = item.quantity + 50;
+                          if (newQuantity > item.availableQuantity) {
+                            ToastService.showTopToast(
+                              context,
+                              "Stock Limit",
+                              "Only ${item.availableQuantity} MT available in stock.",
+                              titleColor: Colors.red,
+                            );
+                          } else {
+                            context.read<CartBloc>().add(
+                              UpdateCartItemQuantity(
+                                cartItemId: item.id,
+                                quantity: newQuantity,
+                              ),
+                            );
+                          }
+                        },
                         icon: const Icon(Icons.add, size: 18),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
@@ -389,7 +595,12 @@ class CartSummarySection extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: GBtn(text: "Proceed to RFQ", onPressed: () {}),
+                child: GBtn(
+                  text: "Buy Now",
+                  onPressed: () {
+                    context.read<CartBloc>().add(BuyNowEvent());
+                  },
+                ),
               ),
             ],
           ),

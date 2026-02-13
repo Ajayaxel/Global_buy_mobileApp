@@ -5,6 +5,7 @@ class User {
   final String email;
   final String phone;
   final String? address;
+  final String? otp;
 
   User({
     required this.id,
@@ -13,6 +14,7 @@ class User {
     required this.email,
     required this.phone,
     this.address,
+    this.otp,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class User {
       email: json['email'],
       phone: json['phone'],
       address: json['address'],
+      otp: json['otp']?.toString(),
     );
   }
 }

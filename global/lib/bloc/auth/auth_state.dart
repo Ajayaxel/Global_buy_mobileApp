@@ -44,3 +44,26 @@ class ForgotPasswordSuccess extends AuthState {
   @override
   List<Object?> get props => [message];
 }
+
+class OtpVerificationLoading extends AuthState {}
+
+class OtpVerificationSuccess extends AuthState {
+  final String message;
+  final User? user;
+
+  const OtpVerificationSuccess(this.message, {this.user});
+
+  @override
+  List<Object?> get props => [message, user];
+}
+
+class ResendOtpLoading extends AuthState {}
+
+class ResendOtpSuccess extends AuthState {
+  final String message;
+
+  const ResendOtpSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}

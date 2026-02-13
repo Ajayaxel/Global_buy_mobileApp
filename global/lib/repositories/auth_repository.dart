@@ -321,4 +321,118 @@ class AuthRepository {
       throw Exception(e.toString());
     }
   }
+
+  Future<Map<String, dynamic>> verifyOtp({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      final formData = FormData.fromMap({'email': email, 'otp': otp});
+
+      final response = await _dio.post(
+        ApiConstants.verifyOtp,
+        data: formData,
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      // ignore: avoid_print
+      print('Verify OTP Response: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['status'] == true) {
+          // If token is returned, save it
+          if (data['token'] != null) {
+            await _saveToken(data['token']);
+          }
+
+          User? user;
+          if (data['buyer'] != null) {
+            user = User.fromJson(data['buyer']);
+          }
+
+          return {
+            'message': data['message'] ?? 'OTP verified successfully.',
+            'user': user,
+          };
+        } else {
+          throw Exception(data['message'] ?? 'OTP verification failed');
+        }
+      } else {
+        throw Exception('Server Error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      // ignore: avoid_print
+      print('Verify OTP DioError: ${e.response?.data}');
+      String errorMessage = 'Something went wrong';
+      if (e.response != null) {
+        if (e.response!.data is Map && e.response!.data['message'] != null) {
+          errorMessage = e.response!.data['message'];
+        } else {
+          errorMessage = e.message ?? 'Server Error';
+        }
+      } else {
+        errorMessage = 'Network Error: ${e.message}';
+      }
+      throw Exception(errorMessage);
+    } catch (e) {
+      // ignore: avoid_print
+      print('Verify OTP Error: $e');
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<String> resendOtp({required String email}) async {
+    try {
+      final formData = FormData.fromMap({'email': email});
+
+      final response = await _dio.post(
+        ApiConstants.resendOtp,
+        data: formData,
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      // ignore: avoid_print
+      print('Resend OTP Response: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['status'] == true) {
+          return data['message'] ?? 'OTP resent successfully.';
+        } else {
+          throw Exception(data['message'] ?? 'Failed to resend OTP');
+        }
+      } else {
+        throw Exception('Server Error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      // ignore: avoid_print
+      print('Resend OTP DioError: ${e.response?.data}');
+      String errorMessage = 'Something went wrong';
+      if (e.response != null) {
+        if (e.response!.data is Map && e.response!.data['message'] != null) {
+          errorMessage = e.response!.data['message'];
+        } else {
+          errorMessage = e.message ?? 'Server Error';
+        }
+      } else {
+        errorMessage = 'Network Error: ${e.message}';
+      }
+      throw Exception(errorMessage);
+    } catch (e) {
+      // ignore: avoid_print
+      print('Resend OTP Error: $e');
+      throw Exception(e.toString());
+    }
+  }
 }

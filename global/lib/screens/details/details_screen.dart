@@ -2,27 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:global/screens/chat/chat_screen.dart';
 import 'package:global/theme/app_colors.dart';
 import 'package:global/widgets/gbtn.dart';
-import 'package:global/models/cart_item.dart';
-import 'package:global/services/cart_manager.dart';
+import 'package:global/models/buyer_home_model.dart';
 import 'package:global/services/toast_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:global/bloc/cart/cart_bloc.dart';
+import 'package:global/bloc/cart/cart_state.dart';
+import 'package:global/bloc/cart/cart_event.dart';
 
 class DetailsScreen extends StatefulWidget {
-  final String name;
+  final Product? product;
+  final String? name;
   final String? grade;
   final String? price;
   final String? unit;
   final String? rating;
-  final String image;
-  final String tag;
+  final String? image;
+  final String? tag;
 
   const DetailsScreen({
     super.key,
-    required this.name,
+    this.product,
+    this.name,
     this.grade,
     this.price,
     this.unit,
     this.rating,
-    required this.image,
+    this.image,
     this.tag = 'Featured',
   });
 
@@ -32,9 +37,75 @@ class DetailsScreen extends StatefulWidget {
 
 class _DetailsScreenState extends State<DetailsScreen> {
   int quantity = 100;
+  int _currentImageIndex = 0;
 
   @override
   Widget build(BuildContext context) {
+    // Helper to get values with fallback
+    final productName = widget.product?.name ?? widget.name ?? "Unknown";
+    final productCategory =
+        widget.product?.category ?? widget.grade ?? "Standard Grade";
+    final productPrice =
+        widget.product?.pricePerUnit ??
+        widget.price?.replaceAll('\$', '') ??
+        "0.00";
+    final productUnit = widget.product != null
+        ? "/Unit"
+        : (widget.unit ?? "/MT");
+    final productRating = widget.rating ?? "4.8";
+    final productDesc =
+        widget.product != null && widget.product!.description.isNotEmpty
+        ? widget.product!.description
+        : "Responsibly sourced ${productName.toLowerCase()} for battery cathode production. High purity and ethically mined.";
+    final productQuantity = widget.product?.quantity ?? "200 MT";
+    final supplierName = widget.product != null
+        ? widget.product!.supplier.companyName
+        : "Katanga Resources";
+    final supplierLocation = widget.product != null
+        ? widget.product!.supplier.cityRegion
+        : "Durban Bonded Warehouse";
+
+    // Image handling
+    Widget buildImage() {
+      if (widget.product != null && widget.product!.images.isNotEmpty) {
+        return SizedBox(
+          height: 220,
+          child: PageView.builder(
+            itemCount: widget.product!.images.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentImageIndex = index;
+              });
+            },
+            itemBuilder: (context, index) {
+              return Image.network(
+                'http://192.168.0.145:8000/storage/${widget.product!.images[index].imagePath}',
+                height: 220,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => const Center(
+                  child: Icon(
+                    Icons.no_photography_rounded,
+                    size: 80,
+                    color: Colors.grey,
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      } else if (widget.image != null) {
+        return Image.asset(widget.image!, height: 220, fit: BoxFit.contain);
+      } else {
+        return const Center(
+          child: Icon(
+            Icons.no_photography_rounded,
+            size: 80,
+            color: Colors.grey,
+          ),
+        );
+      }
+    }
+
     return Scaffold(
       body: Stack(
         children: [
@@ -46,27 +117,22 @@ class _DetailsScreenState extends State<DetailsScreen> {
             height: MediaQuery.of(context).size.height * 0.55,
             child: SafeArea(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const SizedBox(height: 20), // Reduced space
                   Center(
-                    child: Hero(
-                      tag: widget.image,
-                      child: Image.asset(
-                        widget.image,
-                        height: 220, // Reduced height
-                        fit: BoxFit.contain,
-                      ),
-                    ),
+                    child: Hero(tag: productName, child: buildImage()),
                   ),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildDot(true),
-                      _buildDot(false),
-                      _buildDot(false),
-                      _buildDot(false),
-                    ],
+                    children: List.generate(
+                      (widget.product != null &&
+                              widget.product!.images.isNotEmpty)
+                          ? widget.product!.images.length
+                          : 1,
+                      (index) => _buildDot(index == _currentImageIndex),
+                    ),
                   ),
                 ],
               ),
@@ -110,7 +176,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    widget.name,
+                                    productName,
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
@@ -119,7 +185,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    widget.grade ?? "Standard Grade",
+                                    productCategory,
                                     style: TextStyle(fontSize: 16),
                                   ),
                                 ],
@@ -134,7 +200,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  widget.rating ?? "4.8",
+                                  productRating,
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -191,7 +257,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 text: TextSpan(
                                   children: [
                                     TextSpan(
-                                      text: widget.price ?? "\$32,000",
+                                      text: "\$$productPrice",
                                       style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
@@ -199,7 +265,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                       ),
                                     ),
                                     TextSpan(
-                                      text: widget.unit ?? "/MT",
+                                      text: productUnit,
                                       style: TextStyle(
                                         fontSize: 16,
                                         color: AppColors.yellowColor,
@@ -209,8 +275,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   ],
                                 ),
                               ),
-                              const Text(
-                                "Available: 200 MT",
+                              Text(
+                                "Available: $productQuantity",
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 16,
@@ -232,7 +298,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "Responsibly sourced ${widget.name.toLowerCase()} for battery cathode production. High purity and ethically mined.",
+                          productDesc,
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[600],
@@ -318,24 +384,92 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        GBtn(
-                          text: "ADD TO CART",
-                          onPressed: () {
-                            CartManager().addItem(
-                              CartItem(
-                                name: widget.name,
-                                grade: widget.grade ?? "Standard Grade",
-                                origin: "Chile", // Default for now as per image
-                                price: widget.price ?? "\$8,500",
-                                unit: widget.unit ?? "/MT",
-                                image: widget.image,
-                                quantity: quantity,
-                              ),
-                            );
-                            ToastService.showSuccess(
-                              context,
-                              "Added to Cart",
-                              "${widget.name} has been added to your cart successfully.",
+                        BlocConsumer<CartBloc, CartState>(
+                          listener: (context, state) {
+                            if (state is CartSuccess) {
+                              ToastService.showTopToast(
+                                context,
+                                "Added to Cart",
+                                state.message,
+                              );
+                            } else if (state is CartError) {
+                              ToastService.showTopToast(
+                                context,
+                                "Failed",
+                                state.error,
+                                titleColor: Colors.red,
+                              );
+                            }
+                          },
+                          builder: (context, state) {
+                            final isLoading = state is CartLoading;
+                            return GBtn(
+                              text: isLoading ? "ADDING..." : "ADD TO CART",
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      if (widget.product == null) {
+                                        ToastService.showTopToast(
+                                          context,
+                                          "Error",
+                                          "Product details not available",
+                                          titleColor: Colors.red,
+                                        );
+                                        return;
+                                      }
+
+                                      // Parse available quantity
+                                      final availableQtyStr =
+                                          widget.product!.quantity.isNotEmpty
+                                          ? widget.product!.quantity
+                                          : "0";
+                                      final availableQty =
+                                          int.tryParse(
+                                            availableQtyStr.replaceAll(
+                                              RegExp(r'[^0-9]'),
+                                              '',
+                                            ),
+                                          ) ??
+                                          0;
+
+                                      if (quantity > availableQty) {
+                                        ToastService.showTopToast(
+                                          context,
+                                          "Unavailable Quantity",
+                                          "Selected quantity ($quantity) exceeds available stock ($availableQty).",
+                                          titleColor: Colors.red,
+                                        );
+                                        return;
+                                      }
+
+                                      if (quantity <= 0) {
+                                        ToastService.showTopToast(
+                                          context,
+                                          "Invalid Quantity",
+                                          "Please select a quantity greater than 0.",
+                                          titleColor: Colors.red,
+                                        );
+                                        return;
+                                      }
+
+                                      // Parse price
+                                      final price =
+                                          double.tryParse(
+                                            productPrice.replaceAll(
+                                              RegExp(r'[^0-9.]'),
+                                              '',
+                                            ),
+                                          ) ??
+                                          0.0;
+
+                                      context.read<CartBloc>().add(
+                                        AddToCartEvent(
+                                          productId: widget.product!.id,
+                                          quantity: quantity,
+                                          price: price,
+                                        ),
+                                      );
+                                    },
                             );
                           },
                         ),
@@ -356,12 +490,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           mainAxisSpacing: 12,
                           crossAxisSpacing: 12,
                           padding: EdgeInsets.zero,
-                          children: [
-                            _buildSpecItem("Cobalt Content", "38%"),
-                            _buildSpecItem("Copper", "<0.5%"),
-                            _buildSpecItem("Iron", "<0.2%"),
-                            _buildSpecItem("Moisture", "15%"),
-                          ],
+                          children:
+                              (widget.product?.specifications.isNotEmpty ??
+                                  false)
+                              ? widget.product!.specifications.map((spec) {
+                                  return _buildSpecItem(spec, "Yes");
+                                }).toList()
+                              : [_buildSpecItem("Grade / Purity", "N/A")],
                         ),
                         const SizedBox(height: 16),
 
@@ -375,11 +510,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
                         ),
                         const SizedBox(height: 16),
                         Row(
-                          children: [
-                            _buildCertificationItem("ITSCI Certified"),
-                            const SizedBox(width: 12),
-                            _buildCertificationItem("ISO 9001"),
-                          ],
+                          children:
+                              (widget.product?.certificates.isNotEmpty ?? false)
+                              ? widget.product!.certificates.map((cert) {
+                                  return _buildCertificationItem("Certified");
+                                }).toList()
+                              : [_buildCertificationItem("ISO 9001")],
                         ),
                         const SizedBox(height: 24),
 
@@ -423,16 +559,17 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              const Text(
-                                "Katanga Resources",
-                                style: TextStyle(
+                              const SizedBox(height: 8),
+                              Text(
+                                supplierName,
+                                style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                "Durban Bonded Warehouse",
+                                supplierLocation,
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                   fontSize: 14,
@@ -447,8 +584,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => const ChatScreen(
-                                          name: "Katanga Resources",
+                                        builder: (context) => ChatScreen(
+                                          name: supplierName,
                                           image:
                                               "assets/images/home/cobalt.png",
                                         ),

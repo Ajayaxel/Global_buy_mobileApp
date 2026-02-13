@@ -47,7 +47,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const VerifyAccountScreen(),
+                builder: (context) => VerifyAccountScreen(
+                  email: state.user?.email ?? _emailController.text,
+                  initialOtp: state.user?.otp,
+                ),
               ),
             );
           } else if (state is AuthFailure) {

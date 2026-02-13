@@ -11,42 +11,7 @@ class CartManager {
 
   List<CartItem> get items => cartItemsNotifier.value;
 
-  void addItem(CartItem item) {
-    final currentItems = List<CartItem>.from(cartItemsNotifier.value);
-    // Check if item already exists
-    final index = currentItems.indexWhere(
-      (i) => i.name == item.name && i.grade == item.grade,
-    );
-    if (index != -1) {
-      currentItems[index].quantity += item.quantity;
-    } else {
-      currentItems.add(item);
-    }
-    cartItemsNotifier.value = currentItems;
-  }
-
-  void removeItem(CartItem item) {
-    final currentItems = List<CartItem>.from(cartItemsNotifier.value);
-    currentItems.removeWhere(
-      (i) => i.name == item.name && i.grade == item.grade,
-    );
-    cartItemsNotifier.value = currentItems;
-  }
-
-  void updateQuantity(CartItem item, int newQuantity) {
-    if (newQuantity <= 0) {
-      removeItem(item);
-      return;
-    }
-    final currentItems = List<CartItem>.from(cartItemsNotifier.value);
-    final index = currentItems.indexWhere(
-      (i) => i.name == item.name && i.grade == item.grade,
-    );
-    if (index != -1) {
-      currentItems[index].quantity = newQuantity;
-      cartItemsNotifier.value = currentItems;
-    }
-  }
+  int get totalItemsCount => items.length;
 
   double get totalAmount {
     return items.fold(0, (sum, item) => sum + item.totalItemPrice);

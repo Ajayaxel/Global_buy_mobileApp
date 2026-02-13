@@ -1,169 +1,230 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:global/bloc/profile/profile_bloc.dart';
-import 'package:global/bloc/profile/profile_event.dart';
 import 'package:global/bloc/profile/profile_state.dart';
-import 'package:global/repositories/profile_repository.dart';
 import 'package:global/theme/app_colors.dart';
 import 'package:global/screens/details/details_screen.dart';
 import 'package:global/screens/notifications/notification_screen.dart';
+import 'package:global/screens/home/browse_minerals_screen.dart';
+import 'package:global/bloc/home/home_bloc.dart';
+import 'package:global/bloc/home/home_state.dart';
+import 'package:global/bloc/home/home_event.dart';
+import 'package:global/models/buyer_home_model.dart';
+import 'package:global/widgets/network_error_widget.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) =>
-          ProfileBloc(profileRepository: ProfileRepository())
-            ..add(FetchProfile()),
-      child: Scaffold(
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header Section
-                  const HederSection(),
-                  const SizedBox(height: 24),
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: BlocBuilder<HomeBloc, HomeState>(
+            builder: (context, state) {
+              List<String> categories = [];
+              List<Product> featuredProducts = [];
+              List<Product> recentListings = [];
 
-                  // Search Bar
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: const TextField(
-                      decoration: InputDecoration(
-                        hintText: "Search minerals, origins...",
-                        hintStyle: TextStyle(
-                          color: Colors.black38,
-                          fontSize: 16,
-                        ),
-                        prefixIcon: Icon(Icons.search, color: Colors.black54),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+              if (state is HomeError) {
+                return NetworkErrorWidget(
+                  message: state.message,
+                  onRetry: () {
+                    context.read<HomeBloc>().add(FetchHomeData());
+                  },
+                );
+              }
 
-                  // Order Status Card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.yellowColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Image.asset(
-                          "assets/images/home/cube-fill 1.png",
-                          width: 50,
-                          height: 50,
+              if (state is HomeLoaded) {
+                categories = state.homeData.productCategories;
+                featuredProducts = state.homeData.featuredProducts;
+                recentListings = state.homeData.recentListings;
+              }
+
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Section
+                    const HederSection(),
+                    const SizedBox(height: 24),
+
+                    // Search Bar
+                    // Search Bar
+                    GestureDetector(
+                      onTap: () {
+                        final allProducts = <Product>{
+                          ...featuredProducts,
+                          ...recentListings,
+                        }.toList();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BrowseMineralsScreen(
+                              title: "Search Minerals",
+                              products: allProducts,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Text(
-                                    "ORD-2025-004",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Row(
-                                      children: [
-                                        Icon(
-                                          Icons.lock,
-                                          size: 10,
-                                          color: Colors.green,
-                                        ),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          "ESCROW",
-                                          style: TextStyle(
-                                            color: Colors.green,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                "In Transit: ETA: Feb 15",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
+                        child: const TextField(
+                          enabled: false,
+                          decoration: InputDecoration(
+                            hintText: "Search minerals, origins...",
+                            hintStyle: TextStyle(
+                              color: Colors.black38,
+                              fontSize: 16,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: Colors.black54,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
-                        const Icon(Icons.arrow_forward, color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Order Status Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.yellowColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Image.asset(
+                            "assets/images/home/cube-fill 1.png",
+                            width: 50,
+                            height: 50,
+                            // color: Colors.white,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(
+                                      "ORD-2025-004",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Row(
+                                        children: [
+                                          Icon(
+                                            Icons.lock,
+                                            size: 10,
+                                            color: Colors.green,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            "ESCROW",
+                                            style: TextStyle(
+                                              color: Colors.green,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  "In Transit: ETA: Feb 15",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward, color: Colors.white),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Category",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    CategoryBox(categories: categories),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "Featured",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BrowseMineralsScreen(
+                                  title: "Featured Products",
+                                  products: featuredProducts,
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            "See all",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.normal,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    "Category",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 15),
-                  const CategoryBox(),
-                  const SizedBox(height: 10),
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Featured",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        "See all",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
-                  const FeaturedList(),
-                  const SizedBox(height: 15),
-                  const RecentListings(),
-                  const SizedBox(height: 25),
-                ],
-              ),
-            ),
+                    const SizedBox(height: 15),
+                    FeaturedList(products: featuredProducts),
+                    const SizedBox(height: 15),
+                    RecentListings(products: recentListings),
+                    const SizedBox(height: 25),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -241,58 +302,39 @@ class HederSection extends StatelessWidget {
 }
 
 class CategoryBox extends StatelessWidget {
-  const CategoryBox({super.key});
+  final List<String> categories;
+
+  const CategoryBox({super.key, this.categories = const []});
 
   @override
   Widget build(BuildContext context) {
+    if (categories.isEmpty) {
+      // Show default or empty
+      return const SizedBox(height: 120);
+    }
+
+    // Simple icon mapping helper
+    String getIconForCategory(String category) {
+      return "assets/images/home/gold-ingot_529823 1.png"; // Use this icon for all categories
+    }
+
     return SizedBox(
-      height: 96,
+      height: 120,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: 7,
+        itemCount: categories.length,
         separatorBuilder: (context, index) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
-          // List of dummy data for the boxes
-          final List<Map<String, String>> categories = [
-            {
-              "name": "Copper Ore",
-              "icon": "assets/images/home/gold-ingot_529823 1.png",
-            },
-            {
-              "name": "Lithium Carbonate",
-              "icon": "assets/images/home/gold-ingot_529823 1.png",
-            },
-            {
-              "name": "Zinc Concentrate",
-              "icon": "assets/images/home/gold-ingot_529823 1.png",
-            },
-            {
-              "name": "Cobalt Hydroxide",
-              "icon": "assets/images/home/gold-ingot_529823 1.png",
-            },
-            {
-              "name": "Nickel Ore",
-              "icon": "assets/images/home/gold-ingot_529823 1.png",
-            },
-            {
-              "name": "Iron Ore",
-              "icon": "assets/images/home/gold-ingot_529823 1.png",
-            },
-            {
-              "name": "Gold Bullion",
-              "icon": "assets/images/home/gold-ingot_529823 1.png",
-            },
-          ];
+          final categoryName = categories[index];
+          final iconPath = getIconForCategory(categoryName);
 
           return GestureDetector(
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DetailsScreen(
-                    name: categories[index]["name"]!,
-                    image: categories[index]["icon"]!,
-                  ),
+                  builder: (context) =>
+                      DetailsScreen(name: categoryName, image: iconPath),
                 ),
               );
             },
@@ -307,13 +349,14 @@ class CategoryBox extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset(
-                    categories[index]["icon"]!,
-                    width: 18,
-                    height: 18,
+                    iconPath,
+                    width: 40,
+                    height: 40,
+                    color: AppColors.yellowColor,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    categories[index]["name"]!,
+                    categoryName,
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -334,81 +377,30 @@ class CategoryBox extends StatelessWidget {
 }
 
 class FeaturedList extends StatelessWidget {
-  const FeaturedList({super.key});
+  final List<Product> products;
+
+  const FeaturedList({super.key, this.products = const []});
 
   @override
   Widget build(BuildContext context) {
+    if (products.isEmpty) {
+      return const SizedBox(height: 215);
+    }
     return SizedBox(
       height: 215,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: 5,
+        itemCount: products.length,
         separatorBuilder: (context, index) => const SizedBox(width: 15),
         itemBuilder: (context, index) {
-          final List<Map<String, dynamic>> featuredItems = [
-            {
-              "name": "Copper Ore",
-              "grade": "Grade A (99.5%)",
-              "price": "\$8,500",
-              "unit": "/MT",
-              "rating": "4.8",
-              "image": "assets/images/home/copper 1.png",
-              "tag": "Featured",
-            },
-            {
-              "name": "Iron Ore",
-              "grade": "Grade B (62%)",
-              "price": "\$120",
-              "unit": "/MT",
-              "rating": "4.6",
-              "image": "assets/images/home/iorn 1.png",
-              "tag": "Featured",
-            },
-            {
-              "name": "Gold Bullion",
-              "grade": "24K (99.9%)",
-              "price": "\$65,000",
-              "unit": "/kg",
-              "rating": "4.9",
-              "image": "assets/images/home/gold-ingot_529823 1.png",
-              "tag": "Featured",
-            },
-            {
-              "name": "Lithium",
-              "grade": "Battery Grade",
-              "price": "\$13,500",
-              "unit": "/MT",
-              "rating": "4.7",
-              "image": "assets/images/home/copper 1.png", // Placeholder
-              "tag": "Featured",
-            },
-            {
-              "name": "Nickel",
-              "grade": "Class 1",
-              "price": "\$16,200",
-              "unit": "/MT",
-              "rating": "4.5",
-              "image": "assets/images/home/iorn 1.png", // Placeholder
-              "tag": "Featured",
-            },
-          ];
-
-          final item = featuredItems[index];
+          final product = products[index];
 
           return GestureDetector(
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DetailsScreen(
-                    name: item["name"],
-                    grade: item["grade"],
-                    price: item["price"],
-                    unit: item["unit"],
-                    rating: item["rating"],
-                    image: item["image"],
-                    tag: item["tag"],
-                  ),
+                  builder: (context) => DetailsScreen(product: product),
                 ),
               );
             },
@@ -433,11 +425,15 @@ class FeaturedList extends StatelessWidget {
                     child: Stack(
                       children: [
                         Center(
-                          child: Image.asset(
-                            item["image"],
-                            height: 71,
-                            fit: BoxFit.contain,
-                          ),
+                          child: product.images.isNotEmpty
+                              ? Image.network(
+                                  'http://192.168.0.145:8000/storage/${product.images.first.imagePath}',
+                                  height: 71,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Icon(Icons.no_photography_rounded),
+                                )
+                              : Icon(Icons.no_photography_rounded),
                         ),
                         Positioned(
                           top: 4,
@@ -451,9 +447,9 @@ class FeaturedList extends StatelessWidget {
                               color: const Color(0xFFFFCD4A),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Text(
-                              item["tag"],
-                              style: const TextStyle(
+                            child: const Text(
+                              "Featured",
+                              style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.normal,
                                 color: Colors.black,
@@ -466,7 +462,7 @@ class FeaturedList extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    item["name"],
+                    product.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -477,7 +473,7 @@ class FeaturedList extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    item["grade"],
+                    product.category,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
@@ -493,7 +489,7 @@ class FeaturedList extends StatelessWidget {
                             text: TextSpan(
                               children: [
                                 TextSpan(
-                                  text: item["price"],
+                                  text: "\$${product.pricePerUnit}",
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -501,7 +497,7 @@ class FeaturedList extends StatelessWidget {
                                   ),
                                 ),
                                 TextSpan(
-                                  text: item["unit"],
+                                  text: "/Unit",
                                   style: const TextStyle(
                                     fontSize: 11,
                                     color: Colors.black,
@@ -514,12 +510,12 @@ class FeaturedList extends StatelessWidget {
                         ),
                       ),
                       Row(
-                        children: [
-                          const Icon(Icons.star, size: 16, color: Colors.amber),
-                          const SizedBox(width: 4),
+                        children: const [
+                          Icon(Icons.star, size: 16, color: Colors.amber),
+                          SizedBox(width: 4),
                           Text(
-                            item["rating"],
-                            style: const TextStyle(
+                            "4.8",
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
@@ -540,61 +536,15 @@ class FeaturedList extends StatelessWidget {
 }
 
 class RecentListings extends StatelessWidget {
-  const RecentListings({super.key});
+  final List<Product> products;
+
+  const RecentListings({super.key, this.products = const []});
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> recentItems = [
-      {
-        "name": "Lithium Carbonate",
-        "grade": "Battery Grade (99.5%)",
-        "price": "\$45,000",
-        "unit": "/MT",
-        "rating": "4.8",
-        "image": "assets/images/home/copper 1.png", // Placeholder
-      },
-      {
-        "name": "Cobalt Hydroxide",
-        "grade": "Battery Grade",
-        "price": "\$32,000",
-        "unit": "/MT",
-        "rating": "4.8",
-        "image": "assets/images/home/cobalt.png", // Placeholder
-      },
-      {
-        "name": "Manganese Ore",
-        "grade": "High Grade (44%)",
-        "price": "\$280",
-        "unit": "/MT",
-        "rating": "4.8",
-        "image": "assets/images/home/copper 1.png", // Placeholder
-      },
-      {
-        "name": "Zinc Concentrate",
-        "grade": "Premium (55%)",
-        "price": "\$1,800",
-        "unit": "/MT",
-        "rating": "4.5",
-        "image": "assets/images/home/iorn 1.png", // Placeholder
-      },
-      {
-        "name": "Copper Ore",
-        "grade": "Grade A (99.5%)",
-        "price": "\$8,500",
-        "unit": "/MT",
-        "rating": "4.8",
-        "image": "assets/images/home/copper 1.png",
-      },
-      {
-        "name": "Iron Ore",
-        "grade": "Grade B (62%)",
-        "price": "\$120",
-        "unit": "/MT",
-        "rating": "4.6",
-        "image": "assets/images/home/iorn 1.png",
-      },
-    ];
-
+    if (products.isEmpty) {
+      return const SizedBox(height: 0);
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -612,22 +562,15 @@ class RecentListings extends StatelessWidget {
             mainAxisSpacing: 15,
             childAspectRatio: 0.75,
           ),
-          itemCount: recentItems.length,
+          itemCount: products.length,
           itemBuilder: (context, index) {
-            final item = recentItems[index];
+            final product = products[index];
             return GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => DetailsScreen(
-                      name: item["name"],
-                      grade: item["grade"],
-                      price: item["price"],
-                      unit: item["unit"],
-                      rating: item["rating"],
-                      image: item["image"],
-                    ),
+                    builder: (context) => DetailsScreen(product: product),
                   ),
                 );
               },
@@ -649,17 +592,21 @@ class RecentListings extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Center(
-                          child: Image.asset(
-                            item["image"],
-                            height: 71,
-                            fit: BoxFit.contain,
-                          ),
+                          child: product.images.isNotEmpty
+                              ? Image.network(
+                                  'http://192.168.0.145:8000/storage/${product.images.first.imagePath}',
+                                  height: 71,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Icon(Icons.no_photography_rounded),
+                                )
+                              : Icon(Icons.no_photography_rounded),
                         ),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      item["name"],
+                      product.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -670,7 +617,7 @@ class RecentListings extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      item["grade"],
+                      product.category,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
@@ -686,7 +633,7 @@ class RecentListings extends StatelessWidget {
                               text: TextSpan(
                                 children: [
                                   TextSpan(
-                                    text: item["price"],
+                                    text: "\$${product.pricePerUnit}",
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
@@ -694,7 +641,7 @@ class RecentListings extends StatelessWidget {
                                     ),
                                   ),
                                   TextSpan(
-                                    text: item["unit"],
+                                    text: "/Unit",
                                     style: const TextStyle(
                                       fontSize: 11,
                                       color: Colors.black,
@@ -707,16 +654,12 @@ class RecentListings extends StatelessWidget {
                           ),
                         ),
                         Row(
-                          children: [
-                            const Icon(
-                              Icons.star,
-                              size: 16,
-                              color: Colors.amber,
-                            ),
-                            const SizedBox(width: 4),
+                          children: const [
+                            Icon(Icons.star, size: 16, color: Colors.amber),
+                            SizedBox(width: 4),
                             Text(
-                              item["rating"],
-                              style: const TextStyle(
+                              "4.8",
+                              style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black,

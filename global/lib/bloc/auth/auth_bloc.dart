@@ -12,6 +12,40 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<LogoutRequested>(_onLogoutRequested);
     on<ForgotPasswordRequested>(_onForgotPasswordRequested);
+    on<VerifyOtpRequested>(_onVerifyOtpRequested);
+    on<ResendOtpRequested>(_onResendOtpRequested);
+  }
+
+  Future<void> _onResendOtpRequested(
+    ResendOtpRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(ResendOtpLoading());
+    try {
+      final message = await authRepository.resendOtp(email: event.email);
+      emit(ResendOtpSuccess(message));
+    } catch (e) {
+      emit(AuthFailure(e.toString()));
+    }
+  }
+
+  Future<void> _onVerifyOtpRequested(
+    VerifyOtpRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(OtpVerificationLoading());
+    try {
+      final response = await authRepository.verifyOtp(
+        email: event.email,
+        otp: event.otp,
+      );
+      emit(OtpVerificationSuccess(response['message'], user: response['user']));
+      // After successful verification, we don't emit AuthAuthenticated here
+      // because the user needs to upload documents first.
+      // The navigation is handled in the UI listener of VerifyAccountScreen.
+    } catch (e) {
+      emit(AuthFailure(e.toString()));
+    }
   }
 
   Future<void> _onForgotPasswordRequested(

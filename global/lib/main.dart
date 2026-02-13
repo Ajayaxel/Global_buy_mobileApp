@@ -4,9 +4,18 @@ import 'package:global/bloc/auth/auth_bloc.dart';
 import 'package:global/bloc/auth/auth_event.dart';
 import 'package:global/bloc/document/document_bloc.dart';
 import 'package:global/bloc/profile/profile_bloc.dart';
+import 'package:global/bloc/profile/profile_event.dart';
 import 'package:global/repositories/auth_repository.dart';
 import 'package:global/repositories/profile_repository.dart';
 import 'package:global/screens/splash/splash_screen.dart';
+
+import 'package:global/bloc/home/home_bloc.dart';
+import 'package:global/bloc/home/home_event.dart';
+import 'package:global/repositories/home_repository.dart';
+import 'package:global/bloc/cart/cart_bloc.dart';
+import 'package:global/repositories/cart_repository.dart';
+import 'package:global/bloc/order/order_bloc.dart';
+import 'package:global/repositories/order_repository.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,7 +40,18 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider(
           create: (context) =>
-              ProfileBloc(profileRepository: ProfileRepository()),
+              ProfileBloc(profileRepository: ProfileRepository())
+                ..add(FetchProfile()),
+        ),
+        BlocProvider(
+          create: (context) =>
+              HomeBloc(homeRepository: HomeRepository())..add(FetchHomeData()),
+        ),
+        BlocProvider(
+          create: (context) => CartBloc(cartRepository: CartRepository()),
+        ),
+        BlocProvider(
+          create: (context) => OrderBloc(orderRepository: OrderRepository()),
         ),
       ],
       child: MaterialApp(
