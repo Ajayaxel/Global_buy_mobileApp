@@ -95,7 +95,6 @@ class OrderModel {
   int get currentStep {
     switch (status.toLowerCase()) {
       case 'order placed':
-        if (purchaseContractUrl != null) return 1;
         return 0;
       case 'contract signed':
         return 1;

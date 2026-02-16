@@ -115,7 +115,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     LogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
-    await authRepository.logout();
-    emit(AuthUnauthenticated());
+    emit(LogoutLoading());
+    try {
+      final message = await authRepository.logout();
+      emit(LogoutSuccess(message));
+    } catch (e) {
+      // Even if logout fails server-side, we clear local session
+      emit(AuthFailure(e.toString()));
+    }
   }
 }

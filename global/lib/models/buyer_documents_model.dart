@@ -24,4 +24,7 @@ class BuyerDocuments {
       'proof_of_address': proofOfAddress,
     };
   }
+
+  bool get areAllNull =>
+      governmentId == null && businessLicence == null && proofOfAddress == null;
 }

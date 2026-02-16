@@ -133,7 +133,7 @@ class _BrowseMineralsScreenState extends State<BrowseMineralsScreen> {
                                       child: Center(
                                         child: product.images.isNotEmpty
                                             ? Image.network(
-                                                'http://192.168.0.145:8000/storage/${product.images.first.imagePath}',
+                                                product.images.first.imageUrl,
                                                 height: 71,
                                                 fit: BoxFit.contain,
                                                 errorBuilder:

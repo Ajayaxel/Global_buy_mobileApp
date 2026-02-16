@@ -17,4 +17,9 @@ class ApiConstants {
   static const String getOrderDetails = '/buyer/orders/';
   static const String verifyOtp = '/buyer/verify-otp';
   static const String resendOtp = '/buyer/resend-otp';
+  static const String logout = '/buyer/logout';
+  static const String addNegotiation = '/buyer/add-negotiation';
+  static const String chatList = '/buyer/chat-list';
+  static const String viewChat = '/buyer/view-chat/';
+  static const String sendMessage = '/buyer/send-message';
 }

@@ -37,8 +37,9 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         cartItemId: event.cartItemId,
         quantity: event.quantity,
       );
-      final items = await cartRepository.getCart();
+      final (items, cartId) = await cartRepository.getCart();
       CartManager().cartItemsNotifier.value = items;
+      CartManager().cartId = cartId;
       emit(const CartSuccess("Quantity updated successfully."));
       emit(CartLoaded(items));
     } catch (e) {
@@ -53,8 +54,9 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     emit(CartLoading());
     try {
       await cartRepository.deleteCartItem(event.cartItemId);
-      final items = await cartRepository.getCart();
+      final (items, cartId) = await cartRepository.getCart();
       CartManager().cartItemsNotifier.value = items;
+      CartManager().cartId = cartId;
       emit(const CartSuccess("Item removed from cart."));
       emit(CartLoaded(items));
     } catch (e) {
@@ -68,8 +70,9 @@ class CartBloc extends Bloc<CartEvent, CartState> {
   ) async {
     emit(CartLoading());
     try {
-      final items = await cartRepository.getCart();
+      final (items, cartId) = await cartRepository.getCart();
       CartManager().cartItemsNotifier.value = items;
+      CartManager().cartId = cartId;
       emit(CartLoaded(items));
     } catch (e) {
       emit(CartError(e.toString()));
@@ -89,8 +92,9 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         quantity: event.quantity,
         price: event.price,
       );
-      final items = await cartRepository.getCart();
+      final (items, cartId) = await cartRepository.getCart();
       CartManager().cartItemsNotifier.value = items;
+      CartManager().cartId = cartId;
       emit(const CartSuccess("Product added to cart successfully."));
       emit(CartLoaded(items));
     } catch (e) {

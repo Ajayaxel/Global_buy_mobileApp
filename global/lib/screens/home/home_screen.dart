@@ -328,46 +328,35 @@ class CategoryBox extends StatelessWidget {
           final categoryName = categories[index];
           final iconPath = getIconForCategory(categoryName);
 
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      DetailsScreen(name: categoryName, image: iconPath),
+          return Container(
+            width: 106,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  iconPath,
+                  width: 40,
+                  height: 40,
+                  color: AppColors.yellowColor,
                 ),
-              );
-            },
-            child: Container(
-              width: 106,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    iconPath,
-                    width: 40,
-                    height: 40,
-                    color: AppColors.yellowColor,
+                const SizedBox(height: 8),
+                Text(
+                  categoryName,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    categoryName,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         },
@@ -427,7 +416,7 @@ class FeaturedList extends StatelessWidget {
                         Center(
                           child: product.images.isNotEmpty
                               ? Image.network(
-                                  'http://192.168.0.145:8000/storage/${product.images.first.imagePath}',
+                                  product.images.first.imageUrl,
                                   height: 71,
                                   fit: BoxFit.contain,
                                   errorBuilder: (context, error, stackTrace) =>
@@ -594,7 +583,7 @@ class RecentListings extends StatelessWidget {
                         child: Center(
                           child: product.images.isNotEmpty
                               ? Image.network(
-                                  'http://192.168.0.145:8000/storage/${product.images.first.imagePath}',
+                                  product.images.first.imageUrl,
                                   height: 71,
                                   fit: BoxFit.contain,
                                   errorBuilder: (context, error, stackTrace) =>

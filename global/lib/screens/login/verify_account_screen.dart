@@ -35,10 +35,12 @@ class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
     _startTimer();
     if (widget.initialOtp != null && widget.initialOtp!.length == 6) {
       _autoFillOtp(widget.initialOtp!);
-      // Auto-verify as requested
+      // Auto-verify as requested - REMOVED
+      /* 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _verifyOtp(context);
       });
+      */
     }
   }
 

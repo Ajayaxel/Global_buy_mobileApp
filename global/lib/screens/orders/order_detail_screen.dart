@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:global/bloc/order/order_bloc.dart';
-import 'package:global/bloc/order/order_event.dart';
-import 'package:global/bloc/order/order_state.dart';
+import 'package:global/bloc/order/order_detail_bloc.dart';
+import 'package:global/bloc/order/order_detail_event.dart';
+import 'package:global/bloc/order/order_detail_state.dart';
 import 'package:global/theme/app_colors.dart';
 import 'package:global/widgets/gbtn.dart';
 import 'package:global/services/toast_service.dart';
@@ -22,7 +22,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<OrderBloc>().add(FetchOrderDetails(widget.orderId));
+    context.read<OrderDetailBloc>().add(FetchOrderDetails(widget.orderId));
   }
 
   @override
@@ -36,7 +36,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: BlocBuilder<OrderBloc, OrderState>(
+        title: BlocBuilder<OrderDetailBloc, OrderDetailState>(
           builder: (context, state) {
             if (state is OrderDetailLoaded) {
               return Column(
@@ -93,11 +93,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ),
         ],
       ),
-      body: BlocBuilder<OrderBloc, OrderState>(
+      body: BlocBuilder<OrderDetailBloc, OrderDetailState>(
         builder: (context, state) {
-          if (state is OrderLoading) {
+          if (state is OrderDetailLoading) {
             return const Center(child: CustomLoadingIndicator());
-          } else if (state is OrderError) {
+          } else if (state is OrderDetailError) {
             return Center(child: Text(state.message));
           } else if (state is OrderDetailLoaded) {
             final order = state.order;
@@ -139,12 +139,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                     color: const Color(0xFFF6F6F6),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: Icon(
-                                      Icons.image,
-                                      color: Colors.grey,
-                                    ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: item.product.images.isNotEmpty
+                                        ? Image.network(
+                                            item.product.images.first.imageUrl,
+                                            fit: BoxFit.contain,
+                                            errorBuilder:
+                                                (
+                                                  context,
+                                                  error,
+                                                  stackTrace,
+                                                ) => Image.asset(
+                                                  "assets/images/home/copper 1.png",
+                                                  fit: BoxFit.contain,
+                                                ),
+                                          )
+                                        : Image.asset(
+                                            "assets/images/home/copper 1.png",
+                                            fit: BoxFit.contain,
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(width: 16),

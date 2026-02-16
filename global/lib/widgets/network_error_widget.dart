@@ -18,11 +18,19 @@ class NetworkErrorWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.wifi_off_rounded, size: 80, color: Colors.grey.shade400),
+            Icon(
+              _isVerificationError(message)
+                  ? Icons.admin_panel_settings_outlined
+                  : Icons.wifi_off_rounded,
+              size: 80,
+              color: Colors.grey.shade400,
+            ),
             const SizedBox(height: 24),
-            const Text(
-              "Connection Error",
-              style: TextStyle(
+            Text(
+              _isVerificationError(message)
+                  ? "Account Status"
+                  : "Connection Error",
+              style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
@@ -69,5 +77,11 @@ class NetworkErrorWidget extends StatelessWidget {
       return "The connection timed out. The server might be busy, please try again.";
     }
     return error.replaceAll("Exception:", "").trim();
+  }
+
+  bool _isVerificationError(String error) {
+    final lowerError = error.toLowerCase();
+    return lowerError.contains("pending verification") ||
+        lowerError.contains("rejected");
   }
 }

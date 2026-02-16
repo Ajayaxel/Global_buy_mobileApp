@@ -88,18 +88,35 @@ class ProductImage {
   final int id;
   final int productId;
   final String imagePath;
+  final String imageUrl;
 
   ProductImage({
     required this.id,
     required this.productId,
     required this.imagePath,
+    required this.imageUrl,
   });
 
   factory ProductImage.fromJson(Map<String, dynamic> json) {
+    String imagePath = json['image_path'] ?? '';
+    String imageUrl = json['image_url'] ?? '';
+
+    // If imageUrl is empty but imagePath exists, construct it
+    if (imageUrl.isEmpty && imagePath.isNotEmpty) {
+      if (imagePath.startsWith('http')) {
+        imageUrl = imagePath;
+      } else {
+        // Use the railway base URL instead of local IP
+        imageUrl =
+            'https://feisty-endurance-global-ore-exchange.up.railway.app/storage/$imagePath';
+      }
+    }
+
     return ProductImage(
       id: json['id'] ?? 0,
       productId: json['product_id'] ?? 0,
-      imagePath: json['image_path'] ?? '',
+      imagePath: imagePath,
+      imageUrl: imageUrl,
     );
   }
 }

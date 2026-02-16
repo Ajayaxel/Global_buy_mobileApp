@@ -12,7 +12,7 @@ class CartRepository {
     _dio.options.receiveTimeout = const Duration(seconds: 10);
   }
 
-  Future<List<CartItem>> getCart() async {
+  Future<(List<CartItem>, int)> getCart() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
@@ -35,9 +35,13 @@ class CartRepository {
         final data = response.data;
         if (data['status'] == true && data['cart'] != null) {
           final List itemsJson = data['cart']['items'] ?? [];
-          return itemsJson.map((item) => CartItem.fromJson(item)).toList();
+          final items = itemsJson
+              .map((item) => CartItem.fromJson(item))
+              .toList();
+          final int cartId = data['cart']['id'] ?? 0;
+          return (items, cartId);
         } else {
-          return [];
+          return (<CartItem>[], 0);
         }
       } else {
         throw Exception('Server Error: ${response.statusCode}');

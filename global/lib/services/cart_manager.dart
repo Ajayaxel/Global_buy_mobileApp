@@ -8,6 +8,7 @@ class CartManager {
 
   final ValueNotifier<List<CartItem>> cartItemsNotifier =
       ValueNotifier<List<CartItem>>([]);
+  int cartId = 0;
 
   List<CartItem> get items => cartItemsNotifier.value;
 

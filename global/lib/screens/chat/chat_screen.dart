@@ -1,11 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:global/bloc/chat/chat_bloc.dart';
+import 'package:global/bloc/chat/chat_event.dart';
+import 'package:global/bloc/chat/chat_state.dart';
+import 'package:global/models/chat_message_model.dart';
+import 'package:global/widgets/custom_loading_indicator.dart';
+import 'package:global/widgets/network_error_widget.dart';
+import 'package:intl/intl.dart';
 import '../../theme/app_colors.dart';
 
 class ChatScreen extends StatefulWidget {
+  final int supplierId;
   final String name;
   final String image;
 
-  const ChatScreen({super.key, required this.name, required this.image});
+  const ChatScreen({
+    super.key,
+    required this.supplierId,
+    required this.name,
+    required this.image,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -14,51 +28,15 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<Map<String, dynamic>> _messages = [
-    {
-      "text":
-          "Hi, I'm interested in your Lithium Carbonate batch. What's your best price for 50MT?",
-      "isMe": true,
-      "time": "09:10",
-    },
-    {
-      "text":
-          "Hello! Thank you for your interest. For 50MT, our standard price is \$45,000/ MT.",
-      "isMe": false,
-      "senderName": "Salta Lithium SA",
-      "time": "09:11",
-    },
-    {
-      "text":
-          "Quantity50 MT\nPrice\$43,000/MT\nTermsFOB Buenos Aires\nTotal\$2,150,000",
-      "isMe": true,
-      "time": "09:12",
-    },
-    {
-      "text":
-          "Quantity100 MT\nPrice\$44,000/MT\nTermsFOB Buenos Aires\nTotal\$4,400,000",
-      "isMe": false,
-      "senderName": "Salta Lithium SA",
-      "time": "09:12",
-    },
-  ];
+  List<ChatMessage> _localMessages = [];
 
-  void _sendMessage() {
-    if (_controller.text.trim().isEmpty) return;
+  @override
+  void initState() {
+    super.initState();
+    context.read<ChatBloc>().add(FetchChatMessagesRequested(widget.supplierId));
+  }
 
-    final now = DateTime.now();
-    final timeString =
-        "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
-
-    setState(() {
-      _messages.add({
-        "text": _controller.text,
-        "isMe": true,
-        "time": timeString,
-      });
-      _controller.clear();
-    });
-
+  void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -68,6 +46,24 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     });
+  }
+
+  String _formatTime(String? timeStr) {
+    if (timeStr == null) return "";
+    try {
+      final dateTime = DateTime.parse(timeStr).toLocal();
+      return DateFormat('HH:mm').format(dateTime);
+    } catch (e) {
+      return "";
+    }
+  }
+
+  void _sendMessage() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+
+    context.read<ChatBloc>().add(SendMessageRequested(widget.supplierId, text));
+    _controller.clear();
   }
 
   @override
@@ -115,20 +111,55 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: _buildMessage(
-                    text: msg['text'],
-                    isMe: msg['isMe'],
-                    time: msg['time'],
-                    senderName: msg['senderName'],
-                  ),
+            child: BlocConsumer<ChatBloc, ChatState>(
+              listener: (context, state) {
+                if (state is MessagesLoaded) {
+                  setState(() {
+                    _localMessages = List.from(state.messages);
+                  });
+                  _scrollToBottom();
+                } else if (state is MessageSentSuccess) {
+                  setState(() {
+                    _localMessages.add(state.message);
+                  });
+                  _scrollToBottom();
+                } else if (state is MessageSentFailure) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(state.error)));
+                }
+              },
+              builder: (context, state) {
+                if (state is MessagesLoading && _localMessages.isEmpty) {
+                  return const Center(child: CustomLoadingIndicator());
+                } else if (state is MessagesFailure && _localMessages.isEmpty) {
+                  return NetworkErrorWidget(
+                    message: state.error,
+                    onRetry: () {
+                      context.read<ChatBloc>().add(
+                        FetchChatMessagesRequested(widget.supplierId),
+                      );
+                    },
+                  );
+                }
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _localMessages.length,
+                  itemBuilder: (context, index) {
+                    final msg = _localMessages[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: _buildMessage(
+                        text: msg.message,
+                        isMe: msg.isMe,
+                        time: _formatTime(msg.createdAt),
+                        isNegotiation: msg.isNegotiation == 1,
+                        senderName: msg.isMe ? null : widget.name,
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -144,6 +175,7 @@ class _ChatScreenState extends State<ChatScreen> {
     required String text,
     required bool isMe,
     required String time,
+    required bool isNegotiation,
     String? senderName,
   }) {
     return Column(
@@ -163,7 +195,7 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
         Container(
           padding: const EdgeInsets.all(16),
-          constraints: const BoxConstraints(maxWidth: 250),
+          constraints: const BoxConstraints(maxWidth: 300),
           decoration: BoxDecoration(
             color: isMe ? AppColors.yellowColor : Colors.white,
             borderRadius: BorderRadius.only(
@@ -180,12 +212,66 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ],
           ),
-          child: Text(
-            text,
-            style: TextStyle(
-              color: isMe ? Colors.white : Colors.grey[800],
-              fontSize: 14,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                text,
+                style: TextStyle(
+                  color: isMe ? Colors.white : Colors.grey[800],
+                  fontSize: 14,
+                ),
+              ),
+              if (isNegotiation && !isMe) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          // TODO: Implement reject
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          side: const BorderSide(color: Colors.grey),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          "Reject",
+                          style: TextStyle(color: Colors.black, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // TODO: Implement accept
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.yellowColor,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          "Accept",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
         ),
         const SizedBox(height: 5),

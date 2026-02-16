@@ -8,12 +8,3 @@ abstract class OrderEvent extends Equatable {
 }
 
 class FetchOrders extends OrderEvent {}
-
-class FetchOrderDetails extends OrderEvent {
-  final int orderId;
-
-  const FetchOrderDetails(this.orderId);
-
-  @override
-  List<Object> get props => [orderId];
-}

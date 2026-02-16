@@ -1,64 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:global/bloc/chat/chat_bloc.dart';
+import 'package:global/bloc/chat/chat_event.dart';
+import 'package:global/bloc/chat/chat_state.dart';
+import 'package:global/widgets/custom_loading_indicator.dart';
+import 'package:global/widgets/network_error_widget.dart';
+import 'package:intl/intl.dart';
 import 'package:global/screens/home/home_screen.dart';
 import 'chat_screen.dart';
 
-class MessagesScreen extends StatelessWidget {
+class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> messages = [
-      {
-        "name": "Salta Lithium SA",
-        "message": "We can offer \$44,000/MT for 100MT ..",
-        "time": "09:18",
-        "unread": 1,
-        "image": "assets/images/home/cobalt.png", // Placeholder
-      },
-      {
-        "name": "Andean Mining Co.",
-        "message": "We can offer \$44,000/MT for 100MT ..",
-        "time": "12/05/2025",
-        "unread": 2,
-        "image": "assets/images/home/cobalt.png",
-      },
-      {
-        "name": "Jacob Mining Co.",
-        "message": "We can offer \$44,000/MT for 100MT ..",
-        "time": "12/05/2025",
-        "unread": 3,
-        "image": "assets/images/home/cobalt.png",
-      },
-      {
-        "name": "Lamta Lithium SA",
-        "message": "We can offer \$44,000/MT for 100MT ..",
-        "time": "12/05/2025",
-        "unread": 1,
-        "image": "assets/images/home/cobalt.png",
-      },
-      {
-        "name": "Salta Lithium SA",
-        "message": "We can offer \$44,000/MT for 100MT ..",
-        "time": "09:18",
-        "unread": 1,
-        "image": "assets/images/home/cobalt.png",
-      },
-      {
-        "name": "Andean Mining Co.",
-        "message": "We can offer \$44,000/MT for 100MT ..",
-        "time": "12/05/2025",
-        "unread": 2,
-        "image": "assets/images/home/cobalt.png",
-      },
-      {
-        "name": "Jacob Mining Co.",
-        "message": "We can offer \$44,000/MT for 100MT ..",
-        "time": "12/05/2025",
-        "unread": 3,
-        "image": "assets/images/home/cobalt.png",
-      },
-    ];
+  State<MessagesScreen> createState() => _MessagesScreenState();
+}
 
+class _MessagesScreenState extends State<MessagesScreen> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<ChatBloc>().add(FetchChatListRequested());
+  }
+
+  String _formatTime(String? timeStr) {
+    if (timeStr == null) return "";
+    try {
+      final dateTime = DateTime.parse(timeStr).toLocal();
+      final now = DateTime.now();
+      if (dateTime.year == now.year &&
+          dateTime.month == now.month &&
+          dateTime.day == now.day) {
+        return DateFormat('HH:mm').format(dateTime);
+      } else {
+        return DateFormat('dd/MM/yyyy').format(dateTime);
+      }
+    } catch (e) {
+      return "";
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -87,107 +70,134 @@ class MessagesScreen extends StatelessWidget {
 
             // Messages List
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: messages.length,
-                separatorBuilder: (context, index) =>
-                    const Divider(height: 1, color: Color(0xFFEEEEEE)),
-                itemBuilder: (context, index) {
-                  final item = messages[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChatScreen(
-                            name: item['name'],
-                            image: item['image'],
-                          ),
-                        ),
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CircleAvatar(
-                            radius: 20, // Size 40 diameter as requested
-                            backgroundColor: Colors.grey.shade200,
-                            backgroundImage: AssetImage(item['image']),
-                          ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: Column(
+              child: BlocBuilder<ChatBloc, ChatState>(
+                builder: (context, state) {
+                  if (state is ChatLoading) {
+                    return const Center(child: CustomLoadingIndicator());
+                  } else if (state is ChatFailure) {
+                    return NetworkErrorWidget(
+                      message: state.error,
+                      onRetry: () {
+                        context.read<ChatBloc>().add(FetchChatListRequested());
+                      },
+                    );
+                  } else if (state is ChatLoaded) {
+                    final suppliers = state.suppliers;
+                    if (suppliers.isEmpty) {
+                      return const Center(child: Text("No messages yet"));
+                    }
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: suppliers.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                      itemBuilder: (context, index) {
+                        final item = suppliers[index];
+                        return GestureDetector(
+                          onTap: () async {
+                            final chatBloc = context.read<ChatBloc>();
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatScreen(
+                                  supplierId: item.id,
+                                  name: item.companyName,
+                                  image:
+                                      "assets/images/home/cobalt.png", // Using same placeholder for now
+                                ),
+                              ),
+                            );
+                            chatBloc.add(FetchChatListRequested());
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      item['name'],
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    if (item['unread'] > 0)
-                                      Container(
-                                        width: 20,
-                                        height: 20,
-                                        alignment: Alignment.center,
-                                        decoration: const BoxDecoration(
-                                          color: Color(
-                                            0xFFC5A03F,
-                                          ), // Gold/Yellow color
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Text(
-                                          item['unread'].toString(),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: Colors.grey.shade200,
+                                  backgroundImage: const AssetImage(
+                                    "assets/images/home/cobalt.png",
+                                  ),
                                 ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        item['message'],
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey.shade600,
-                                        ),
+                                const SizedBox(width: 15),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            item.companyName,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                          if (item.unreadCount > 0)
+                                            Container(
+                                              width: 20,
+                                              height: 20,
+                                              alignment: Alignment.center,
+                                              decoration: const BoxDecoration(
+                                                color: Color(0xFFC5A03F),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Text(
+                                                item.unreadCount.toString(),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
                                       ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      item['time'],
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade500,
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              item.lastMessage ??
+                                                  "No messages yet",
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            _formatTime(item.lastMessageTime),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade500,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  );
+                        );
+                      },
+                    );
+                  }
+                  return const SizedBox.shrink();
                 },
               ),
             ),

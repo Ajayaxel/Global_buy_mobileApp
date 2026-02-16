@@ -101,8 +101,7 @@ class OrderCard extends StatelessWidget {
       double.tryParse(order.totalAmount) ?? 0.0,
     );
 
-    // Get first item product image if available
-    String productImage = "assets/images/home/copper 1.png";
+    // Get first item product name if available
     String productName = "Unknown Product";
     if (order.items.isNotEmpty) {
       productName =
@@ -187,9 +186,24 @@ class OrderCard extends StatelessWidget {
                     color: const Color(0xFFF6F6F6),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Image.asset(productImage, fit: BoxFit.contain),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child:
+                        (order.items.isNotEmpty &&
+                            order.items.first.product.images.isNotEmpty)
+                        ? Image.network(
+                            order.items.first.product.images.first.imageUrl,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Image.asset(
+                                  "assets/images/home/copper 1.png",
+                                  fit: BoxFit.contain,
+                                ),
+                          )
+                        : Image.asset(
+                            "assets/images/home/copper 1.png",
+                            fit: BoxFit.contain,
+                          ),
                   ),
                 ),
               ],

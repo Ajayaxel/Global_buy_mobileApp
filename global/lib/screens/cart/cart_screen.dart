@@ -15,6 +15,10 @@ import 'package:global/models/buyer_home_model.dart';
 import 'package:global/services/toast_service.dart';
 import 'package:global/widgets/custom_loading_indicator.dart';
 import 'package:global/widgets/network_error_widget.dart';
+import 'package:global/bloc/negotiation/negotiation_bloc.dart';
+import 'package:global/bloc/negotiation/negotiation_event.dart';
+import 'package:global/bloc/negotiation/negotiation_state.dart';
+import 'package:global/widgets/custom_toast.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -190,7 +194,20 @@ class _CartScreenState extends State<CartScreen> {
                             ),
                           ),
                         ),
-                        const CartSummarySection(),
+                        BlocListener<NegotiationBloc, NegotiationState>(
+                          listener: (context, negState) {
+                            if (negState is NegotiationSuccess) {
+                              CustomToast.show(context, negState.message);
+                            } else if (negState is NegotiationFailure) {
+                              CustomToast.show(
+                                context,
+                                negState.error,
+                                isError: true,
+                              );
+                            }
+                          },
+                          child: const CartSummarySection(),
+                        ),
                       ],
                     );
                   },
@@ -577,7 +594,18 @@ class CartSummarySection extends StatelessWidget {
                 child: SizedBox(
                   height: 46,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      final cartId = CartManager().cartId;
+                      if (cartId == 0) {
+                        CustomToast.show(
+                          context,
+                          "Cart is empty",
+                          isError: true,
+                        );
+                        return;
+                      }
+                      _showNegotiationDialog(context, cartId);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF707070),
                       foregroundColor: Colors.white,
@@ -618,6 +646,102 @@ class CartSummarySection extends StatelessWidget {
           ),
           const SizedBox(height: 50), // Padding for bottom nav
         ],
+      ),
+    );
+  }
+
+  void _showNegotiationDialog(BuildContext context, int cartId) {
+    final TextEditingController priceController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Request Quote",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Enter your proposed price for this order.",
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: priceController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  hintText: "Enter Price",
+                  labelText: "Proposed Price",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  prefixIcon: const Icon(Icons.attach_money),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text("Cancel"),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final price = priceController.text.trim();
+                        if (price.isEmpty) {
+                          CustomToast.show(
+                            context,
+                            "Please enter a price",
+                            isError: true,
+                          );
+                          return;
+                        }
+                        context.read<NegotiationBloc>().add(
+                          AddNegotiationRequested(
+                            cartId: cartId,
+                            negotiationPrice: price,
+                          ),
+                        );
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFBA983F),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text("Submit"),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

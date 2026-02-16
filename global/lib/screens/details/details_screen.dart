@@ -79,7 +79,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
             },
             itemBuilder: (context, index) {
               return Image.network(
-                'http://192.168.0.145:8000/storage/${widget.product!.images[index].imagePath}',
+                widget.product!.images[index].imageUrl,
                 height: 220,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => const Center(
@@ -585,6 +585,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) => ChatScreen(
+                                          supplierId:
+                                              widget.product?.supplierId ?? 0,
                                           name: supplierName,
                                           image:
                                               "assets/images/home/cobalt.png",

@@ -67,3 +67,14 @@ class ResendOtpSuccess extends AuthState {
   @override
   List<Object?> get props => [message];
 }
+
+class LogoutLoading extends AuthState {}
+
+class LogoutSuccess extends AuthState {
+  final String message;
+
+  const LogoutSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}

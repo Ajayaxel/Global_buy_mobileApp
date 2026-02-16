@@ -15,7 +15,12 @@ import 'package:global/repositories/home_repository.dart';
 import 'package:global/bloc/cart/cart_bloc.dart';
 import 'package:global/repositories/cart_repository.dart';
 import 'package:global/bloc/order/order_bloc.dart';
+import 'package:global/bloc/order/order_detail_bloc.dart';
 import 'package:global/repositories/order_repository.dart';
+import 'package:global/bloc/negotiation/negotiation_bloc.dart';
+import 'package:global/repositories/negotiation_repository.dart';
+import 'package:global/bloc/chat/chat_bloc.dart';
+import 'package:global/repositories/chat_repository.dart';
 
 void main() {
   runApp(const MyApp());
@@ -52,6 +57,17 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider(
           create: (context) => OrderBloc(orderRepository: OrderRepository()),
+        ),
+        BlocProvider(
+          create: (context) =>
+              OrderDetailBloc(orderRepository: OrderRepository()),
+        ),
+        BlocProvider(
+          create: (context) =>
+              NegotiationBloc(negotiationRepository: NegotiationRepository()),
+        ),
+        BlocProvider(
+          create: (context) => ChatBloc(chatRepository: ChatRepository()),
         ),
       ],
       child: MaterialApp(

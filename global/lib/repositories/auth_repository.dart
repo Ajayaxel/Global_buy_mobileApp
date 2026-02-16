@@ -9,8 +9,8 @@ class AuthRepository {
 
   AuthRepository() {
     _dio.options.baseUrl = ApiConstants.baseUrl;
-    _dio.options.connectTimeout = const Duration(seconds: 10);
-    _dio.options.receiveTimeout = const Duration(seconds: 10);
+    _dio.options.connectTimeout = const Duration(seconds: 40);
+    _dio.options.receiveTimeout = const Duration(seconds: 40);
     _dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -77,9 +77,33 @@ class AuthRepository {
     return token != null && token.isNotEmpty;
   }
 
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
+  Future<String> logout() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      if (token != null) {
+        final response = await _dio.post(
+          ApiConstants.logout,
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          ),
+        );
+        // ignore: avoid_print
+        print('Logout Response: ${response.data}');
+      }
+    } catch (e) {
+      // ignore: avoid_print
+      print('Logout Error: $e');
+      // Continue to clear local token even if API fails
+    } finally {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+    }
+    return "Logged out successfully.";
   }
 
   Future<(User, String)> register({
