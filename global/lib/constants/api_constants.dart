@@ -1,6 +1,6 @@
 class ApiConstants {
   static const String baseUrl =
-      'https://feisty-endurance-global-ore-exchange.up.railway.app/api';
+      'https://global-ore-exchange-backend-production.up.railway.app/api';
   static const String register = '/buyer/register';
   static const String login = '/buyer/login';
   static const String uploadDocuments = '/buyer/upload-document';

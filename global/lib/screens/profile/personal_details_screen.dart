@@ -7,6 +7,7 @@ import 'package:global/bloc/profile/profile_state.dart';
 import 'package:global/widgets/gbtn.dart';
 import 'package:global/widgets/custom_toast.dart';
 import 'package:global/widgets/custom_loading_indicator.dart';
+import 'package:global/widgets/custom_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 
 class PersonalDetailsScreen extends StatefulWidget {
@@ -128,16 +129,28 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                                 avatarUrl = state.profile.avatarUrl;
                               }
 
-                              return CircleAvatar(
-                                radius: 50,
-                                backgroundImage: _selectedImage != null
-                                    ? FileImage(_selectedImage!)
-                                    : (avatarUrl != null
-                                              ? NetworkImage(avatarUrl)
-                                              : const AssetImage(
-                                                  'assets/images/home/cobalt.png',
-                                                ))
-                                          as ImageProvider,
+                              return ClipOval(
+                                child: Container(
+                                  width: 100,
+                                  height: 100,
+                                  color: const Color(0xFFE0E0E0),
+                                  child: _selectedImage != null
+                                      ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                                      : (avatarUrl != null
+                                          ? CustomNetworkImage(
+                                              imageUrl: avatarUrl,
+                                              fit: BoxFit.cover,
+                                              errorWidget: const Icon(
+                                                Icons.person,
+                                                color: Colors.grey,
+                                                size: 50,
+                                              ),
+                                            )
+                                          : Image.asset(
+                                              'assets/images/home/cobalt.png',
+                                              fit: BoxFit.cover,
+                                            )),
+                                ),
                               );
                             },
                           ),

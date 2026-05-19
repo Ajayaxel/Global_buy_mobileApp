@@ -21,6 +21,7 @@ import 'package:global/bloc/auth/auth_state.dart';
 import 'package:global/bloc/auth/auth_event.dart';
 import 'package:global/widgets/custom_toast.dart';
 import 'package:global/widgets/custom_loading_indicator.dart';
+import 'package:global/widgets/custom_network_image.dart';
 import 'package:global/bloc/order/order_bloc.dart';
 import 'package:global/bloc/order/order_event.dart';
 import 'package:global/bloc/order/order_state.dart';
@@ -151,15 +152,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   return Column(
                                     children: [
                                       // Profile Image
-                                      CircleAvatar(
-                                        radius: 50,
-                                        backgroundImage:
-                                            profile.avatarUrl != null
-                                            ? NetworkImage(profile.avatarUrl!)
-                                            : const AssetImage(
-                                                    'assets/images/home/cobalt.png',
-                                                  )
-                                                  as ImageProvider,
+                                      ClipOval(
+                                        child: Container(
+                                          width: 100,
+                                          height: 100,
+                                          color: const Color(0xFFE0E0E0),
+                                          child: profile.avatarUrl != null
+                                              ? CustomNetworkImage(
+                                                  imageUrl: profile.avatarUrl!,
+                                                  fit: BoxFit.cover,
+                                                  errorWidget: const Icon(
+                                                    Icons.person,
+                                                    color: Colors.grey,
+                                                    size: 60,
+                                                  ),
+                                                )
+                                              : Image.asset(
+                                                  'assets/images/home/cobalt.png',
+                                                  fit: BoxFit.cover,
+                                                ),
+                                        ),
                                       ),
                                       const SizedBox(height: 10),
                                       // Name

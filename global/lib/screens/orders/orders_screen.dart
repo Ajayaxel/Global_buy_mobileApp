@@ -9,6 +9,7 @@ import 'package:global/screens/orders/order_detail_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:global/widgets/custom_loading_indicator.dart';
 import 'package:global/models/order_model.dart';
+import 'package:global/widgets/custom_network_image.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -191,14 +192,13 @@ class OrderCard extends StatelessWidget {
                     child:
                         (order.items.isNotEmpty &&
                             order.items.first.product.images.isNotEmpty)
-                        ? Image.network(
-                            order.items.first.product.images.first.imageUrl,
+                        ? CustomNetworkImage(
+                            imageUrl: order.items.first.product.images.first.imageUrl,
                             fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Image.asset(
-                                  "assets/images/home/copper 1.png",
-                                  fit: BoxFit.contain,
-                                ),
+                            errorWidget: Image.asset(
+                              "assets/images/home/copper 1.png",
+                              fit: BoxFit.contain,
+                            ),
                           )
                         : Image.asset(
                             "assets/images/home/copper 1.png",

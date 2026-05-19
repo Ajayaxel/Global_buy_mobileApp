@@ -3,6 +3,8 @@ import 'package:global/screens/details/details_screen.dart';
 
 import 'package:global/models/buyer_home_model.dart';
 
+import 'package:global/widgets/custom_network_image.dart';
+
 class BrowseMineralsScreen extends StatefulWidget {
   final String title;
   final List<Product>? products;
@@ -132,56 +134,17 @@ class _BrowseMineralsScreenState extends State<BrowseMineralsScreen> {
                                       ),
                                       child: Center(
                                         child: product.images.isNotEmpty
-                                            ? Image.network(
-                                                product.images.first.imageUrl,
+                                            ? CustomNetworkImage(
+                                                imageUrl: product.images.first
+                                                    .imageUrl,
                                                 height: 71,
                                                 fit: BoxFit.contain,
-                                                errorBuilder:
-                                                    (
-                                                      context,
-                                                      error,
-                                                      stackTrace,
-                                                    ) => Column(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      children: const [
-                                                        Icon(
-                                                          Icons
-                                                              .image_not_supported_outlined,
-                                                          size: 30,
-                                                          color: Colors.grey,
-                                                        ),
-                                                        SizedBox(height: 4),
-                                                        Text(
-                                                          "No Image",
-                                                          style: TextStyle(
-                                                            fontSize: 10,
-                                                            color: Colors.grey,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
                                               )
-                                            : Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: const [
-                                                  Icon(
-                                                    Icons
-                                                        .image_not_supported_outlined,
-                                                    size: 30,
-                                                    color: Colors.grey,
-                                                  ),
-                                                  SizedBox(height: 4),
-                                                  Text(
-                                                    "No Image",
-                                                    style: TextStyle(
-                                                      fontSize: 10,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ),
-                                                ],
+                                            : const Icon(
+                                                Icons
+                                                    .image_not_supported_outlined,
+                                                size: 30,
+                                                color: Colors.grey,
                                               ),
                                       ),
                                     ),

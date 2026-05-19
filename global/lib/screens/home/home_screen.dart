@@ -11,6 +11,7 @@ import 'package:global/bloc/home/home_state.dart';
 import 'package:global/bloc/home/home_event.dart';
 import 'package:global/models/buyer_home_model.dart';
 import 'package:global/widgets/network_error_widget.dart';
+import 'package:global/widgets/custom_network_image.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -249,31 +250,48 @@ class HederSection extends StatelessWidget {
 
         return Row(
           children: [
-            CircleAvatar(
-              radius: 25,
-              backgroundColor: const Color(0xFFE0E0E0),
-              backgroundImage: avatarUrl != null
-                  ? NetworkImage(avatarUrl)
-                  : const AssetImage('assets/images/home/cobalt.png')
-                        as ImageProvider,
+            ClipOval(
+              child: Container(
+                width: 50,
+                height: 50,
+                color: const Color(0xFFE0E0E0),
+                child: avatarUrl != null
+                    ? CustomNetworkImage(
+                        imageUrl: avatarUrl,
+                        fit: BoxFit.cover,
+                        errorWidget: const Icon(
+                          Icons.person,
+                          color: Colors.grey,
+                          size: 30,
+                        ),
+                      )
+                    : Image.asset(
+                        'assets/images/home/cobalt.png',
+                        fit: BoxFit.cover,
+                      ),
+              ),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Hey, $userName 👋",
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Hey, $userName 👋",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
-                ),
-                const Text(
-                  "Welcome Back",
-                  style: TextStyle(fontSize: 15, color: Colors.grey),
-                ),
-              ],
+                  const Text(
+                    "Welcome Back",
+                    style: TextStyle(fontSize: 15, color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
             const Spacer(),
             Container(
@@ -415,14 +433,15 @@ class FeaturedList extends StatelessWidget {
                       children: [
                         Center(
                           child: product.images.isNotEmpty
-                              ? Image.network(
-                                  product.images.first.imageUrl,
+                              ? CustomNetworkImage(
+                                  imageUrl: product.images.first.imageUrl,
                                   height: 71,
                                   fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Icon(Icons.no_photography_rounded),
                                 )
-                              : Icon(Icons.no_photography_rounded),
+                              : const Icon(
+                                  Icons.no_photography_rounded,
+                                  color: Colors.grey,
+                                ),
                         ),
                         Positioned(
                           top: 4,
@@ -582,14 +601,15 @@ class RecentListings extends StatelessWidget {
                         ),
                         child: Center(
                           child: product.images.isNotEmpty
-                              ? Image.network(
-                                  product.images.first.imageUrl,
+                              ? CustomNetworkImage(
+                                  imageUrl: product.images.first.imageUrl,
                                   height: 71,
                                   fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Icon(Icons.no_photography_rounded),
                                 )
-                              : Icon(Icons.no_photography_rounded),
+                              : const Icon(
+                                  Icons.no_photography_rounded,
+                                  color: Colors.grey,
+                                ),
                         ),
                       ),
                     ),

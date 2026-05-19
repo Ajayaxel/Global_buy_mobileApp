@@ -19,6 +19,7 @@ import 'package:global/bloc/negotiation/negotiation_bloc.dart';
 import 'package:global/bloc/negotiation/negotiation_event.dart';
 import 'package:global/bloc/negotiation/negotiation_state.dart';
 import 'package:global/widgets/custom_toast.dart';
+import 'package:global/widgets/custom_network_image.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -256,7 +257,7 @@ class CartItemCard extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: item.image.startsWith('http')
-                      ? Image.network(item.image, fit: BoxFit.contain)
+                      ? CustomNetworkImage(imageUrl: item.image, fit: BoxFit.contain)
                       : Image.asset(item.image, fit: BoxFit.contain),
                 ),
               ),
@@ -268,11 +269,15 @@ class CartItemCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          item.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Text(
+                            item.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                         IconButton(
@@ -577,12 +582,17 @@ class CartSummarySection extends StatelessWidget {
                 "Estimated Total",
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
-              Text(
-                currencyFormat.format(total),
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFBA983F),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    currencyFormat.format(total),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFBA983F),
+                    ),
+                  ),
                 ),
               ),
             ],

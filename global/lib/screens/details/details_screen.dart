@@ -5,6 +5,7 @@ import 'package:global/widgets/gbtn.dart';
 import 'package:global/models/buyer_home_model.dart';
 import 'package:global/services/toast_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:global/widgets/custom_network_image.dart';
 import 'package:global/bloc/cart/cart_bloc.dart';
 import 'package:global/bloc/cart/cart_state.dart';
 import 'package:global/bloc/cart/cart_event.dart';
@@ -78,11 +79,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
               });
             },
             itemBuilder: (context, index) {
-              return Image.network(
-                widget.product!.images[index].imageUrl,
+              return CustomNetworkImage(
+                imageUrl: widget.product!.images[index].imageUrl,
                 height: 220,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const Center(
+                errorWidget: const Center(
                   child: Icon(
                     Icons.no_photography_rounded,
                     size: 80,

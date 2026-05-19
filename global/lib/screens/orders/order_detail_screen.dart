@@ -8,12 +8,13 @@ import 'package:global/widgets/gbtn.dart';
 import 'package:global/services/toast_service.dart';
 import 'package:global/widgets/custom_loading_indicator.dart';
 import 'package:intl/intl.dart';
+import 'package:global/widgets/custom_network_image.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
 
   const OrderDetailScreen({super.key, required this.orderId});
-
+  
   @override
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
@@ -142,18 +143,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
                                     child: item.product.images.isNotEmpty
-                                        ? Image.network(
-                                            item.product.images.first.imageUrl,
+                                        ? CustomNetworkImage(
+                                            imageUrl: item.product.images.first.imageUrl,
                                             fit: BoxFit.contain,
-                                            errorBuilder:
-                                                (
-                                                  context,
-                                                  error,
-                                                  stackTrace,
-                                                ) => Image.asset(
-                                                  "assets/images/home/copper 1.png",
-                                                  fit: BoxFit.contain,
-                                                ),
+                                            errorWidget: Image.asset(
+                                              "assets/images/home/copper 1.png",
+                                              fit: BoxFit.contain,
+                                            ),
                                           )
                                         : Image.asset(
                                             "assets/images/home/copper 1.png",
